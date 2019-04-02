@@ -1,0 +1,17 @@
+{:http            {:env   #dyn/keyword #dyn/prop ["HTTP_ENV"  "prod"]
+                   :host  #dyn/prop ["HTTP_HOST" "localhost"]
+                   :port  #dyn/long    #dyn/prop ["HTTP_PORT" "8080"]
+                   :join? #dyn/boolean #dyn/prop ["HTTP_JOIN" "false"]}
+ :redis           {:pool {}
+                   :spec {:host     #dyn/prop ["REDIS_HOST" "localhost"]
+                          :port     #dyn/long #dyn/prop ["REDIS_PORT" "6379"]
+                          :password #dyn/prop ["REDIS_PASSWORD" "foobar"]}}
+ :command-stream  {:stream     #dyn/prop ["REDIS_COMMAND_STREAM" "commands"]
+                   :batch-size 5
+                   :client-id  #dyn/prop ["HOSTNAME" "localhost"]}
+ :event-stream    {:stream     #dyn/prop ["REDIS_EVENT_STREAM" "events"]
+                   :batch-size 5
+                   :client-id  #dyn/prop ["HOSTNAME" "localhost"]}
+ :customer-stream {:stream     #dyn/prop ["REDIS_CUSTOMER_STREAM" "customers"]
+                   :batch-size 5
+                   :client-id  #dyn/prop ["HOSTNAME" "localhost"]}}
