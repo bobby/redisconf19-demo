@@ -252,12 +252,10 @@
   [{:keys [api] :as context} {:keys [email] :as args} callback]
   (let [{:keys [customer-pub]} api
         ch                     (async/chan 1)]
-    (prn ::customer-by-email [args customer-pub callback])
     (async/sub customer-pub email ch)
     (async/go-loop []
       (if-some [customer (async/<! ch)]
         (do
-          (prn ::customer-update customer)
           (callback (present-customer customer))
           (recur))
         (callback nil)))
