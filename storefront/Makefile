@@ -6,6 +6,9 @@ default: release
 clean-cljs:
 	rm -rf resources/public/js/compiled
 
+.PHONY: clean
+clean: clean-cljs
+
 # Dependencies
 
 .PHONY: bootstrap
