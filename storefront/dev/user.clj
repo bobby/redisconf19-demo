@@ -28,8 +28,7 @@
 
 (def config
   (-> config/config
-      (meta-merge dev-config)
-      (update-in [:redis :spec] dissoc :password)))
+      (meta-merge dev-config)))
 
 (ns-unmap *ns* 'test)
 
