@@ -198,7 +198,6 @@
   (let [{:keys [redis command-stream]} api
         command-id                     (util/uuid)
         ch                             (await-event-with-parent api command-id)]
-    ;; TODO: do we need to await here, or can we optimistically update?
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/place-order
@@ -226,7 +225,6 @@
   (let [{:keys [redis command-stream]} api
         command-id                     (util/uuid)
         ch                             (await-event-with-parent api command-id)]
-    ;; TODO: do we need to await here, or can we optimistically update?
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/pay-order
