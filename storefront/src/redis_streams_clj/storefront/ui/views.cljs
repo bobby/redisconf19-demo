@@ -139,7 +139,7 @@
         [:> FontAwesomeIcon {:icon "trash"}]]]]]))
 
 (defn basket-table
-  [order]
+  [basket]
   [:> ui/Table {:fullwidth true
                 :bordered  true}
    [:> ui/Table.Head
@@ -152,22 +152,28 @@
    [:> ui/Table.Foot
     [:> ui/Table.Row
      [:> ui/Table.Cell {:colSpan 3}]
-     [:> ui/Table.Heading (-> order :total format-currency)]]]
-   (into [:> ui/Table.Body] (map basket-item-row (:items order)))])
+     [:> ui/Table.Heading (-> basket :total format-currency)]]]
+   (into [:> ui/Table.Body] (map basket-item-row (:items basket)))])
 
 (defn basket
   []
   (let [basket @(re-frame/subscribe [::subs/basket])]
     [page-view
      {:header  "My Basket"
-      :content [:> ui/Column.Group
-                [:> ui/Column {:size 8}
-                 [basket-table basket]
-                 [:> ui/Field
-                  [:> ui/Control
-                   [:> ui/Button {:color   "primary"
-                                  :onClick #(re-frame/dispatch [:command/place-order!])}
-                    "Place Order"]]]]]}]))
+      :content (if (-> basket :items seq)
+                 [:> ui/Column.Group
+                  [:> ui/Column {:size 8}
+                   [basket-table basket]
+                   [:> ui/Field
+                    [:> ui/Control
+                     [:> ui/Button {:color   "primary"
+                                    :onClick #(re-frame/dispatch [:command/place-order!])}
+                      "Place Order"]]]]]
+                 [:> ui/Content
+                  [:p
+                   "Your shopping basket is empty. Please visit "
+                   [:a {:href (routes/menu)} "our menu"]
+                   " to add items to your basket."]])}]))
 
 (defn order-item-row
   [{:keys [menu_item quantity customization status] :as order-item}]
@@ -211,28 +217,34 @@
      {:header  "My Orders"
       :content [:> ui/Column.Group
                 (into [:> ui/Column {:size 8}]
-                      (for [{:keys [id items status] :as order} orders]
-                        [:> ui/Card {:style {:margin-bottom "3em"}}
-                         [:> ui/Card.Header
-                          [:> ui/Card.Header.Title id]
-                          [:> ui/Card.Header.Icon
-                           [:> ui/Icon
-                            [:> FontAwesomeIcon {:icon (case status
-                                                         "placed" "user-clock"
-                                                         "ready"  "cash-register"
-                                                         "paid"   "check-circle"
-                                                         "question")}]]]]
-                         [:> ui/Card.Content
-                          [order-table order]]
-                         (into [:> ui/Card.Footer]
-                               (case status
-                                 "placed" [[:> ui/Card.Footer.Item {:onClick #(js/alert "cancel!")}
-                                           "Cancel Order"]]
-                                 "ready"  [[:> ui/Card.Footer.Item {:onClick #(js/alert "pay for!")}
-                                           "Pay for Order"]]
-                                 "paid"  [[:> ui/Card.Footer.Item {:onClick #(js/alert "return items!")}
-                                          "Return Items"]]
-                                 []))]))]}]))
+                      (if (seq orders)
+                        (for [{:keys [id items status] :as order} orders]
+                          [:> ui/Card {:style {:margin-bottom "3em"}}
+                           [:> ui/Card.Header
+                            [:> ui/Card.Header.Title id]
+                            [:> ui/Card.Header.Icon
+                             [:> ui/Icon
+                              [:> FontAwesomeIcon {:icon (case status
+                                                           "placed" "user-clock"
+                                                           "ready"  "cash-register"
+                                                           "paid"   "check-circle"
+                                                           "question")}]]]]
+                           [:> ui/Card.Content
+                            [order-table order]]
+                           (into [:> ui/Card.Footer]
+                                 (case status
+                                   "placed" [[:> ui/Card.Footer.Item {:onClick #(js/alert "cancel!")}
+                                              "Cancel Order"]]
+                                   "ready"  [[:> ui/Card.Footer.Item {:onClick #(js/alert "pay for!")}
+                                              "Pay for Order"]]
+                                   "paid"   [[:> ui/Card.Footer.Item {:onClick #(js/alert "return items!")}
+                                              "Return Items"]]
+                                   []))])
+                        [[:> ui/Content
+                          [:p
+                           "You haven't placed any orders yet. Please visit "
+                           [:a {:href (routes/basket)} "your basket"]
+                           " to place an order."]]]))]}]))
 
 (defn not-found []
   [page-view
