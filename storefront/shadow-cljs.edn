@@ -1,5 +1,5 @@
 ;; shadow-cljs configuration
-{:deps {:aliases [:cljs]}
+{:deps  {:aliases [:cljs]}
  ;; set an nrepl port for connection to a REPL.
  :nrepl {:port 8777}
 
@@ -26,5 +26,4 @@
                 {:after-load redis-streams-clj.storefront.ui/start
                  :http-root  "resources/public"
                  :http-port  8700
-                 :preloads   [devtools.preload
-                              day8.re-frame-10x.preload]}}}}
+                 :preloads   [day8.re-frame-10x.preload]}}}}
