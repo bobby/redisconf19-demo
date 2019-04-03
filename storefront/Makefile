@@ -8,6 +8,10 @@ clean-cljs:
 
 # Dependencies
 
+.PHONY: bootstrap
+bootstrap:
+	brew install clojure yarn
+
 .PHONY: js-deps
 js-deps:
 	yarn
@@ -15,7 +19,7 @@ js-deps:
 # Development Workflow
 
 .PHONY: cljs-dev
-cljs-dev: js-deps
+cljs-dev: js-deps clean-cljs
 	yarn shadow-cljs -A:cljs-dev watch app
 
 .PHONY: clj-dev
