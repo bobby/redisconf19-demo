@@ -4,6 +4,7 @@
             [day8.re-frame.tracing :refer-macros [fn-traced]]
             [re-graph.core :as re-graph]
             redis-streams-clj.storefront.ui.effects
+            [redis-streams-clj.storefront.ui.config :as config]
             [redis-streams-clj.storefront.ui.core :as api]
             [redis-streams-clj.storefront.ui.routes :as routes]))
 
@@ -24,8 +25,8 @@
    {:db       {:menu          {}
                :notifications {}}
     ;; TODO: make these urls configurable
-    :dispatch [::re-graph/init {:ws-url   "ws://localhost:8080/graphql-ws"
-                                :http-url "http://localhost:8080/graphql"}]}))
+    :dispatch [::re-graph/init {:ws-url   config/ws-url
+                                :http-url config/http-url}]}))
 
 (re-frame/reg-event-db
  :routes/home

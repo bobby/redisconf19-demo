@@ -10,8 +10,17 @@
                 :modules
                 {:main {:entries [redis-streams-clj.storefront.ui]}}
 
-                :dev {:compiler-options {:closure-defines {re_frame.trace.trace_enabled?        true
-                                                           day8.re-frame.tracing.trace-enabled? true}}}
+                :dev {:closure-defines
+                      {re_frame.trace.trace_enabled?                   true
+                       day8.re-frame.tracing.trace-enabled?            true
+                       goog.DEBUG                                      true
+                       redis-streams-clj.storefront.ui.config.http-url "http://localhost:8080/graphql"
+                       redis-streams-clj.storefront.ui.config.ws-url   "ws://localhost:8080/graphql-ws"}}
+
+                ;; NOTE: override these at build time: https://shadow-cljs.github.io/docs/UsersGuide.html#config-merge
+                :release {:closure-defines
+                          {redis-streams-clj.storefront.ui.config.http-url "http://localhost:8080/graphql"
+                           redis-streams-clj.storefront.ui.config.ws-url   "ws://localhost:8080/graphql-ws"}}
 
                 :devtools
                 {:after-load redis-streams-clj.storefront.ui/start
