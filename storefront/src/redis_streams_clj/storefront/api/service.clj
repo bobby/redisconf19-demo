@@ -138,6 +138,12 @@
    :headers {}
    :body    "healthy"})
 
+(defn index
+  [_]
+  (-> "public/index.html"
+      ring-resp/resource-response
+      (ring-resp/content-type "text/html")))
+
 (defn service-data
   [api {:keys [host port env join?] :as config}]
   (-> schema
@@ -151,9 +157,13 @@
         :app-context   {:api api}})
       (assoc ::http/host  host
              ::http/join? join?
-             ::http/resource-path "/public")
+             ::http/resource-path "/public"
+             ::http/secure-headers {:content-security-policy-settings {:object-src  "none"
+                                                                       :default-src "self"}})
       (merge (dissoc config :host :port :env :join?))
-      (update ::http/routes conj ["/health" :get health :route-name ::health])
+      (update ::http/routes conj
+              ["/health" :get health :route-name ::health]
+              ["/"       :get index  :route-name ::index])
       http/default-interceptors))
 
 (defrecord Service [api config service-map]
