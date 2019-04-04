@@ -159,7 +159,7 @@
              ::http/join? join?
              ::http/resource-path "/public"
              ::http/secure-headers {:content-security-policy-settings {:object-src  "none"
-                                                                       :default-src "self"}})
+                                                                       :default-src "'self' cdnjs.cloudflare.com unpkg.com"}})
       (merge (dissoc config :host :port :env :join?))
       (update ::http/routes conj
               ["/health" :get health :route-name ::health]
