@@ -1,0 +1,29 @@
+;; shadow-cljs configuration
+{:deps  {:aliases [:cljs]}
+ ;; set an nrepl port for connection to a REPL.
+ :nrepl {:port 8877}
+
+ :builds {:app {:target     :browser
+                :output-dir "resources/public/js/compiled"
+                :asset-path "/js/compiled"
+
+                :modules
+                {:main {:entries [redis-streams-clj.barista.ui]}}
+
+                :dev {:closure-defines
+                      {re_frame.trace.trace_enabled?                   true
+                       day8.re-frame.tracing.trace-enabled?            true
+                       goog.DEBUG                                      true
+                       redis-streams-clj.barista.ui.config.http-url "http://localhost:8880/graphql"
+                       redis-streams-clj.barista.ui.config.ws-url   "ws://localhost:8880/graphql-ws"}}
+
+                ;; NOTE: override these at build time: https://shadow-cljs.github.io/docs/UsersGuide.html#config-merge
+                :release {:closure-defines
+                          {redis-streams-clj.barista.ui.config.http-url "http://localhost:8880/graphql"
+                           redis-streams-clj.barista.ui.config.ws-url   "ws://localhost:8880/graphql-ws"}}
+
+                :devtools
+                {:after-load redis-streams-clj.barista.ui/start
+                 :http-root  "resources/public"
+                 :http-port  8800
+                 :preloads   [day8.re-frame-10x.preload]}}}}

@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "deps": "yarn install",
+    "watch": "shadow-cljs watch app;",
+    "release": "shadow-cljs release app;",
+    "server": "shadow-cljs server;",
+    "clean": "rm -rf target; rm -rf resources/public/js/compiled"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.15",
+    "@fortawesome/free-solid-svg-icons": "^5.7.2",
+    "@fortawesome/react-fontawesome": "^0.1.4",
+    "create-react-class": "^15.6.3",
+    "rbx": "^2.1.0",
+    "react": "^16.3.2",
+    "react-dom": "^16.3.2",
+    "react-flip-move": "^3.0.3",
+    "react-highlight.js": "^1.0.7",
+    "react-markdown": "^4.0.6"
+  },
+  "devDependencies": {
+    "karma": "^4.0.1",
+    "shadow-cljs": "^2.0.80"
+  }
+}
