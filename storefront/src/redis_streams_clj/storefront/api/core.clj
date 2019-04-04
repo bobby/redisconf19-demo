@@ -141,16 +141,14 @@
   [{:keys [api] :as context}
    {:keys [customer_email items] :as args}
    value]
-  (let [{:keys [redis command-stream]} api
-        command-id                     (util/uuid)
-        items-after                    (make-basket-items items)]
+  (let [{:keys [redis command-stream]} api]
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/add-items-to-basket
                            {:customer_email customer_email
-                            :items          items-after}
-                           command-id)
-    (vals items-after)))
+                            :items          (make-basket-items items)}
+                           (util/uuid))
+    nil))
 
 (defn publish-items-added-to-basket!
   [{:keys [redis event-stream] :as api} data command-id]
@@ -165,15 +163,14 @@
   [{:keys [api] :as context}
    {:keys [customer_email items] :as args}
    value]
-  (let [{:keys [redis command-stream]} api
-        command-id                     (util/uuid)]
+  (let [{:keys [redis command-stream]} api]
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/remove-items-from-basket
                            {:customer_email customer_email
                             :items          items}
-                           command-id)
-    items))
+                           (util/uuid))
+    nil))
 
 (defn publish-items-removed-from-basket!
   [{:keys [redis event-stream] :as api} data command-id]
@@ -195,19 +192,14 @@
   [{:keys [api] :as context}
    {:keys [customer_email items] :as args}
    value]
-  (let [{:keys [redis command-stream]} api
-        command-id                     (util/uuid)
-        ch                             (await-event-with-parent api command-id)]
+  (let [{:keys [redis command-stream]} api]
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/place-order
                            {:customer_email customer_email
                             :items          (make-order-items items)}
-                           command-id)
-    (some-> ch
-            async/<!!
-            :event/data
-            :order)))
+                           (util/uuid))
+    nil))
 
 (defn publish-order-placed!
   [{:keys [redis event-stream] :as api} data command-id]
