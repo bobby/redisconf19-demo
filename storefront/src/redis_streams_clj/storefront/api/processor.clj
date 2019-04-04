@@ -7,10 +7,10 @@
 
 (defmulti process-command
   (fn [api command] (:command/action command))
-  :default ::default)
+  :default ::unknown)
 (defmulti process-event
   (fn [api event]   (:event/action event))
-  :default ::default)
+  :default ::unknown)
 
 (defrecord Processor [api command-channel event-mult event-channel]
   component/Lifecycle
@@ -50,29 +50,29 @@
   []
   (map->Processor {}))
 
-(defrecord ProcessorInit [api start-id]
+(defrecord CommandInit [api start-id]
   component/Lifecycle
   (start [component]
-    (log/info :component ::ProcessorInit :phase :start)
-    (log/debug :processor component)
+    (log/info :component ::CommandInit :phase :start)
+    (log/debug ::CommandInit component)
     ;; TODO: lookup the first unprocessed command based on events topic
     (assoc component :start-id "$"))
   (stop [component]
-    (log/info :component ::ProcessorInit :phase :stop)
-    (log/debug :processor component)
+    (log/info :component ::CommandInit :phase :stop)
+    (log/debug ::CommandInit component)
     (assoc component :start-id nil)))
 
-(defn make-init
+(defn make-command-init
   []
-  (map->ProcessorInit {}))
+  (map->CommandInit {}))
 
-(defmethod process-command ::default
+(defmethod process-command ::unknown
   [api command]
-  (log/warn ::process-command ::default :command command))
+  (log/warn ::process-command ::unknown :command command))
 
-(defmethod process-event ::default
+(defmethod process-event ::unknown
   [api event]
-  (log/warn ::process-event ::default :event event))
+  (log/warn ::process-event ::unknown :event event))
 
 (defmethod process-command :command/create-customer
   [api command]

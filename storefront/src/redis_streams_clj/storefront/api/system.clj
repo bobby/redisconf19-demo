@@ -12,13 +12,17 @@
 (defn make-system
   [{:keys [http redis command-stream event-stream customer-stream] :as config}]
   (component/system-map
+   :command-channel  (component/using (redis/make-redis-stream-channel command-stream) {:init :command-init})
    :event-channel    (redis/make-redis-stream-channel (assoc event-stream :redis redis))
    :event-mult       (component/using (async/make-mult) {:channel :event-channel})
+
+   ;; TODO: do we need an :event-init for processing from events -> customers?
+   :command-init     (component/using (processor/make-command-init) [:api])
+   :processor        (component/using (processor/make-processor) [:api :command-channel :event-mult])
+
+   :customer-channel (redis/make-redis-stream-channel (assoc customer-stream :redis redis))
+   :customer-pub     (component/using (async/make-pub {:topic-fn :email}) {:channel :customer-channel})
+
    :api              (component/using (api/make-api config) [:event-mult :customer-pub])
    :service          (component/using (service/make-service http) [:api])
-   :server           (component/using (server/make-server) [:service])
-   :processor-init   (component/using (processor/make-init) [:api])
-   :command-channel  (component/using (redis/make-redis-stream-channel command-stream) {:init :processor-init})
-   :processor        (component/using (processor/make-processor) [:api :command-channel :event-mult])
-   :customer-channel (redis/make-redis-stream-channel (assoc customer-stream :redis redis))
-   :customer-pub     (component/using (async/make-pub {:topic-fn :email}) {:channel :customer-channel})))
+   :server           (component/using (server/make-server) [:service])))
