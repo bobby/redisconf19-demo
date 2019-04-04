@@ -13,7 +13,7 @@ clean: clean-cljs
 
 .PHONY: bootstrap
 bootstrap:
-	brew install clojure yarn
+	brew install clojure yarn tokei
 
 .PHONY: js-deps
 js-deps:
@@ -43,3 +43,9 @@ release: release-cljs
 .PHONY: run
 run: release-cljs
 	clj -A:run
+
+# Project info
+
+.PHONY: loc
+loc:
+	tokei src/
