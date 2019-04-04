@@ -152,6 +152,7 @@
       (lp/service-map
        {:env           env
         :graphiql      (= env :dev)
+        :ide-path      "/graphiql"
         :subscriptions true
         :port          port
         :app-context   {:api api}})
@@ -163,7 +164,8 @@
       (merge (dissoc config :host :port :env :join?))
       (update ::http/routes conj
               ["/health" :get health :route-name ::health]
-              ["/"       :get index  :route-name ::index])
+              ["/"       :get index  :route-name ::index]
+              ["/*"      :get index  :route-name ::index-catchall])
       http/default-interceptors))
 
 (defrecord Service [api config service-map]
