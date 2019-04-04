@@ -1,12 +1,22 @@
 (ns redis-streams-clj.common.util
-  (:require [com.stuartsierra.component :as component]
-            [clojure.walk :as walk]
+  (:require [clojure.core.async :as async]
+            [com.stuartsierra.component :as component]
             [io.pedestal.log :as log]
             [clj-uuid :as uuid]))
 
 (defn dissoc-all
   [m ks]
   (apply dissoc m ks))
+
+(defn await-event-with-parent
+  [{:keys [event-mult] :as api} parent-id]
+  (let [ch (async/chan 1 (filter #(= (:event/parent %) parent-id)))]
+    (async/tap event-mult ch)
+    (async/go
+      (let [event (async/<! ch)]
+        (log/debug ::await-event-with-parent parent-id :event event)
+        (async/untap event-mult ch)
+        event))))
 
 (defn set-default-uncaught-exception-handler!
   "Sets the default uncaught exception handler to log the error and exit

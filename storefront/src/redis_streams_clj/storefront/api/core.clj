@@ -4,6 +4,7 @@
             [com.stuartsierra.component :as component]
             [io.pedestal.log :as log]
             [taoensso.carmine :as car :refer (wcar)]
+            [redis-streams-clj.common.domain :as domain]
             [redis-streams-clj.common.redis :as redis]
             [redis-streams-clj.common.util :as util])
   (:import [org.apache.commons.codec.digest DigestUtils]))
@@ -24,38 +25,9 @@
              :event-stream    event-stream
              :customer-stream customer-stream}))
 
-(defn await-event-with-parent
-  [{:keys [event-mult] :as api} parent-id]
-  (let [ch (async/chan 1 (filter #(= (:event/parent %) parent-id)))]
-    (async/tap event-mult ch)
-    (async/go
-      (let [event (async/<! ch)]
-        (log/debug ::await-event-with-parent parent-id :event event)
-        (async/untap event-mult ch)
-        event))))
-
-(def menu-items
-  [{:id          "e19fa2b0-5662-11e9-a902-dac8687b984b"
-    :title       "Cappuccino"
-    :description "Espresso with streamed milk. Classic."
-    :price       1000
-    :photo_url   "/img/products/cappuccino.jpg"}
-   {:id          "e7746720-5662-11e9-a902-dac8687b984b"
-    :title       "Americano"
-    :description "Espresso with hot water, like a 'Merican."
-    :price       800
-    :photo_url   "/img/products/americano.jpg"}
-   {:id          "ed3666e0-5662-11e9-a902-dac8687b984b"
-    :title       "Hot Cocoa"
-    :description "Cocoa powder, sugar, and streamed milk, for us non-coffee drinkers."
-    :price       750
-    :photo_url   "/img/products/cocoa.jpg"}])
-
 (defn menu
   [{:keys [api] :as context} args value]
-  menu-items)
-
-(def customers (atom {}))
+  domain/menu)
 
 (declare present-order)
 (defn present-customer
@@ -103,7 +75,7 @@
     (if-some [customer (customer-by-email api (:email args))]
       (present-customer customer)
       (let [command-id (util/uuid)
-            ch         (await-event-with-parent api command-id)]
+            ch         (util/await-event-with-parent api command-id)]
         (redis/publish-command redis
                                (:stream command-stream)
                                :command/create-customer
@@ -216,7 +188,7 @@
    value]
   (let [{:keys [redis command-stream]} api
         command-id                     (util/uuid)
-        ch                             (await-event-with-parent api command-id)]
+        ch                             (util/await-event-with-parent api command-id)]
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/pay-order
