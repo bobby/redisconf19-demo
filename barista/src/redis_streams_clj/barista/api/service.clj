@@ -90,8 +90,9 @@
       (assoc ::http/host  host
              ::http/join? join?
              ::http/resource-path "/public"
-             ::http/secure-headers {:content-security-policy-settings {:object-src  "none"
-                                                                       :default-src "'self' cdnjs.cloudflare.com unpkg.com"}})
+             ::http/secure-headers {:content-security-policy-settings
+                                    {:style-src  "'self' 'unsafe-inline' cdnjs.cloudflare.com unpkg.com"
+                                     :script-src "'self' 'unsafe-inline'"}})
       (merge (dissoc config :host :port :env :join?))
       (update ::http/routes conj
               ["/health" :get health :route-name ::health]
