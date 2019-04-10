@@ -26,7 +26,7 @@
              :customer-stream customer-stream}))
 
 (defn menu
-  [{:keys [api] :as context} args value]
+  [api]
   domain/menu)
 
 (declare present-order)
@@ -70,24 +70,23 @@
        (set-customer! api)))
 
 (defn upsert-customer!
-  [{:keys [api] :as context} args value]
-  (let [{:keys [redis command-stream]} api]
-    (if-some [customer (customer-by-email api (:email args))]
-      (present-customer customer)
-      (let [command-id (util/uuid)
-            ch         (util/await-event-with-parent api command-id)]
-        (redis/publish-command redis
-                               (:stream command-stream)
-                               :command/create-customer
-                               (assoc args
-                                      :id (util/uuid)
-                                      :basket {}
-                                      :orders {})
-                               command-id)
-        (some-> ch
-                async/<!!
-                :event/data
-                present-customer)))))
+  [{:keys [redis command-stream] :as api} customer-params]
+  (if-some [customer (customer-by-email api (:email customer-params))]
+    (present-customer customer)
+    (let [command-id (util/uuid)
+          ch         (util/await-event-with-parent api command-id)]
+      (redis/publish-command redis
+                             (:stream command-stream)
+                             :command/create-customer
+                             (assoc customer-params
+                                    :id (util/uuid)
+                                    :basket {}
+                                    :orders {})
+                             command-id)
+      (some-> ch
+              async/<!!
+              :event/data
+              present-customer))))
 
 (defn item-maker
   [status]
@@ -110,17 +109,14 @@
   (item-maker :basket))
 
 (defn add-items-to-basket!
-  [{:keys [api] :as context}
-   {:keys [customer_email items] :as args}
-   value]
-  (let [{:keys [redis command-stream]} api]
-    (redis/publish-command redis
-                           (:stream command-stream)
-                           :command/add-items-to-basket
-                           {:customer_email customer_email
-                            :items          (make-basket-items items)}
-                           (util/uuid))
-    nil))
+  [{:keys [redis command-stream] :as api} customer-email items]
+  (redis/publish-command redis
+                         (:stream command-stream)
+                         :command/add-items-to-basket
+                         {:customer_email customer-email
+                          :items          (make-basket-items items)}
+                         (util/uuid))
+  nil)
 
 (defn publish-items-added-to-basket!
   [{:keys [redis event-stream] :as api} data parent]
@@ -132,17 +128,14 @@
                        parent))
 
 (defn remove-items-from-basket!
-  [{:keys [api] :as context}
-   {:keys [customer_email items] :as args}
-   value]
-  (let [{:keys [redis command-stream]} api]
-    (redis/publish-command redis
-                           (:stream command-stream)
-                           :command/remove-items-from-basket
-                           {:customer_email customer_email
-                            :items          items}
-                           (util/uuid))
-    nil))
+  [{:keys [redis command-stream] :as api} customer-email item-ids]
+  (redis/publish-command redis
+                         (:stream command-stream)
+                         :command/remove-items-from-basket
+                         {:customer_email customer-email
+                          :items          item-ids}
+                         (util/uuid))
+  nil)
 
 (defn publish-items-removed-from-basket!
   [{:keys [redis event-stream] :as api} data parent]
@@ -161,17 +154,14 @@
   (update order :items vals))
 
 (defn place-order!
-  [{:keys [api] :as context}
-   {:keys [customer_email items] :as args}
-   value]
-  (let [{:keys [redis command-stream]} api]
-    (redis/publish-command redis
-                           (:stream command-stream)
-                           :command/place-order
-                           {:customer_email customer_email
-                            :items          (make-order-items items)}
-                           (util/uuid))
-    nil))
+  [{:keys [redis command-stream] :as api} customer-email items]
+  (redis/publish-command redis
+                         (:stream command-stream)
+                         :command/place-order
+                         {:customer_email customer-email
+                          :items          (make-order-items items)}
+                         (util/uuid))
+  nil)
 
 (defn publish-order-placed!
   [{:keys [redis event-stream] :as api} data parent]
@@ -183,17 +173,14 @@
                        parent))
 
 (defn pay-order!
-  [{:keys [api] :as context}
-   {:keys [id customer_email] :as args}
-   value]
-  (let [{:keys [redis command-stream]} api
-        command-id                     (util/uuid)
-        ch                             (util/await-event-with-parent api command-id)]
+  [{:keys [redis command-stream] :as api} customer-email order-id]
+  (let [command-id (util/uuid)
+        ch         (util/await-event-with-parent api command-id)]
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/pay-order
-                           {:customer_email customer_email
-                            :id             id}
+                           {:customer_email customer-email
+                            :order_id       order-id}
                            command-id)
     (some-> ch
             async/<!!
@@ -211,9 +198,8 @@
                        parent))
 
 (defn customer-by-email-subscription
-  [{:keys [api] :as context} {:keys [email] :as args} callback]
-  (let [{:keys [customer-pub]} api
-        ch                     (async/chan 1)]
+  [{:keys [customer-pub] :as api} email callback]
+  (let [ch (async/chan 1)]
     (async/sub customer-pub email ch)
     (async/go-loop []
       (if-some [customer (async/<! ch)]

@@ -16,6 +16,43 @@
             [redis-streams-clj.storefront.api.core :as api])
   (:import (clojure.lang IPersistentMap)))
 
+
+(defn menu
+  [{:keys [api] :as context} args value]
+  (api/menu api))
+
+(defn upsert-customer!
+  [{:keys [api] :as context} args value]
+  (api/upsert-customer! api args))
+
+(defn add-items-to-basket!
+  [{:keys [api] :as context}
+   {:keys [customer_email items] :as args}
+   value]
+  (api/add-items-to-basket! api customer_email items))
+
+(defn remove-items-from-basket!
+  [{:keys [api] :as context}
+   {:keys [customer_email items] :as args}
+   value]
+  (api/remove-items-from-basket! api customer_email items))
+
+(defn place-order!
+  [{:keys [api] :as context}
+   {:keys [customer_email items] :as args}
+   value]
+  (api/place-order! api customer_email items))
+
+(defn pay-order!
+  [{:keys [api] :as context}
+   {:keys [customer_email order_id] :as args}
+   value]
+  (api/pay-order! api customer_email order_id))
+
+(defn customer-by-email-subscription
+  [{:keys [api] :as context} {:keys [email] :as args} callback]
+  (api/customer-by-email-subscription api email callback))
+
 (def schema
   {:enums
    {:OrderStatus
@@ -123,14 +160,14 @@
     {:type        :Customer
      :description "Query the Customer having the given email address"
      :args        {:email {:type :String}}
-     :stream      api/customer-by-email-subscription}}})
+     :stream      customer-by-email-subscription}}})
 
-(def resolver-map {:query/menu                         api/menu
-                   :mutation/upsert-customer!          api/upsert-customer!
-                   :mutation/add-items-to-basket!      api/add-items-to-basket!
-                   :mutation/remove-items-from-basket! api/remove-items-from-basket!
-                   :mutation/place-order!              api/place-order!
-                   :mutation/pay-order!                api/pay-order!})
+(def resolver-map {:query/menu                         menu
+                   :mutation/upsert-customer!          upsert-customer!
+                   :mutation/add-items-to-basket!      add-items-to-basket!
+                   :mutation/remove-items-from-basket! remove-items-from-basket!
+                   :mutation/place-order!              place-order!
+                   :mutation/pay-order!                pay-order!})
 
 (defn health
   [_]
