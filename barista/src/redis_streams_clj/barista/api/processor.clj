@@ -27,6 +27,34 @@
   [api event]
   (log/warn ::process-event ::unknown :event event))
 
+(defmethod process-command :command/claim-next-item
+  [api command]
+  (log/info ::process-event :command/claim-next-item :command command)
+  (when-some [item (api/await-next-general-queue-item! api)] ;; TODO: timeout?
+    (api/publish-item-claimed! api command item)))
+
+;; TODO: validate that completed item is same as next (peek via lindex) item from queue
+(defmethod process-command :command/complete-current-item
+  [api {:keys [command/data] :as command}]
+  (log/info ::process-event :command/complete-current-item :command command)
+  (when-some [item (api/pop-barista-queue-item! api (:barista_email data))]
+    (api/publish-item-completed! api command item)))
+
+(defmethod process-storefront-event :event/order-placed
+  [api event]
+  (api/publish-upstream-event! api event))
+
+(defmethod process-event :event/order-placed
+  [api {:keys [event/data] :as event}]
+  (log/info ::process-event :event/order-placed :event event)
+  (api/add-items-to-general-queue! api (:items data)))
+
+(defmethod process-event :event/item-claimed
+  [api {:keys [event/data] :as event}]
+  (log/info ::process-event :event/item-claimed :event event)
+  (let [{:keys [barista_email item]} data]
+    (api/add-item-to-barista-queue! barista_email item)))
+
 (defrecord Processor [api command-channel event-mult event-channel storefront-channel]
   component/Lifecycle
   (start [component]

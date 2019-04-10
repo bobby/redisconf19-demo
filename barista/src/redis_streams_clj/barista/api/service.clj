@@ -36,32 +36,55 @@
       :quantity      {:type :String}
       :status        {:type :OrderItemStatus}}}
 
-    :Order
+    :Barista
     {:description "An order that has been placed."
      :fields
-     {:id     {:type :ID}
-      :items  {:type '(list :OrderItem)}
-      :status {:type :OrderStatus}}}
-
-    :Customer
-    {:description "A customer."
-     :fields
-     {:id     {:type :ID}
-      :name   {:type :String}
-      :email  {:type :String}
-      :basket {:type '(list :OrderItem)}
-      :orders {:type '(list :Order)}}}}
+     {:email        {:type :String}
+      :current_item {:type :OrderItem}
+      :queue_length {:type :Int}}}}
 
    :queries
-   {}
+   {:baristaByEmail
+    {:type        :Barista
+     :description "Shows the current state of the Barista with the given email"
+     :args        {:email {:type :String}}
+     :resolve     :query/barista-by-email}}
 
    :mutations
-   {}
+   {:claimNextItem
+    {:type        :Barista
+     :description "Claim the next item from the general queue"
+     :args        {:barista_email {:type :String}}
+     :resolve     :mutation/claim-next-item!}
 
-   :subscriptions
-   {}})
+    :completeCurrentItem
+    {:type        :Barista
+     :description "Barista indicates that this item is complete"
+     :args        {:barista_email {:type :String}
+                   :item_id       {:type :ID}}
+     :resolve     :mutation/complete-current-item!}}})
 
-(def resolver-map {})
+(defn barista-by-email
+  [{:keys [api] :as context}
+   {:keys [email] :as args}
+   value]
+  (api/barista-by-email api email))
+
+(defn claim-next-item!
+  [{:keys [api] :as context}
+   {:keys [barista_email] :as args}
+   value]
+  (api/claim-next-item! api barista_email))
+
+(defn complete-current-item!
+  [{:keys [api] :as context}
+   {:keys [item_id barista_email] :as args}
+   value]
+  (api/complete-current-item! api barista_email item_id))
+
+(def resolver-map {:mutation/claim-next-item!       claim-next-item!
+                   :mutation/complete-current-item! complete-current-item!
+                   :query/barista-by-email          barista-by-email})
 
 (defn health
   [_]
