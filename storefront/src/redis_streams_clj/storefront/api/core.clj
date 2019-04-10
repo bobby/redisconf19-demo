@@ -154,7 +154,7 @@
                        parent))
 
 (def make-order-items
-  (item-maker :received))
+  (item-maker :ordered))
 
 (defn present-order
   [order]

@@ -24,7 +24,7 @@
 
     :OrderItemStatus
     {:description "The status of an order item"
-     :values      [:basket :received :preparing :ready :delivered]}}
+     :values      [:basket :ordered :preparing :ready :delivered]}}
 
    :input-objects
    {:BasketItem
