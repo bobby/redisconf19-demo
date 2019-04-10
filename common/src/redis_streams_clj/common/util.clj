@@ -9,8 +9,9 @@
   (apply dissoc m ks))
 
 (defn await-event-with-parent
-  [{:keys [event-mult] :as api} parent-id]
-  (let [ch (async/chan 1 (filter #(= (:event/parent %) parent-id)))]
+  [{:keys [event-mult] :as api} parent-id & [id-fn]]
+  (let [id-fn (or id-fn :command/id)
+        ch    (async/chan 1 (filter #(= (-> % :event/parent id-fn) parent-id)))]
     (async/tap event-mult ch)
     (async/go
       (let [event (async/<! ch)]
@@ -20,8 +21,13 @@
 
 (defn make-parent-from-upstream
   [{:keys [redis/offset redis/stream] :as command-or-event}]
-  {:redis/offset offset
-   :redis/stream stream})
+  (cond-> {:redis/offset offset
+           :redis/stream stream}
+    (:command/id command-or-event)
+    (assoc :command/id (:command/id command-or-event))
+
+    (:event/id command-or-event)
+    (assoc :event/id (:event/id command-or-event))))
 
 (defn add-stream-and-offset-from-event
   [data {:keys [redis/offset redis/stream] :as event}]
