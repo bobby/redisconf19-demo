@@ -13,19 +13,19 @@
                  :command/action    action
                  :command/data      data
                  :command/timestamp (java.util.Date.)}
-        id      (wcar redis (car/xadd stream "*" command-id command))]
-    (assoc command :redis/id id)))
+        offset  (wcar redis (car/xadd stream "*" command-id command))]
+    (assoc command :redis/offset offset)))
 
 (defn publish-event
   [redis stream action data event-id & [parent]]
   (log/info ::publish-event [stream action data parent])
-  (let [event {:event/id        event-id
-               :event/parent    parent
-               :event/action    action
-               :event/data      data
-               :event/timestamp (java.util.Date.)}
-        id    (wcar redis (car/xadd stream "*" event-id event))]
-    (assoc event :redis/id id)))
+  (let [event  {:event/id        event-id
+                :event/parent    parent
+                :event/action    action
+                :event/data      data
+                :event/timestamp (java.util.Date.)}
+        offset (wcar redis (car/xadd stream "*" event-id event))]
+    (assoc event :redis/offset offset)))
 
 (defn create-consumer-group!
   [redis stream group]
@@ -33,7 +33,10 @@
 
 (defn- extract-stream-records
   [records]
-  (map (fn [[id [_ record]]] (assoc record :redis/id id))
+  (map (fn [[offset [stream record]]]
+         (assoc record
+                :redis/offset offset
+                :redis/stream stream))
        records))
 
 (defn next-batch-from-stream-for-group
@@ -74,7 +77,7 @@
                                                                   from-id)]
               (doseq [event events]
                 (async/>!! channel event))
-              (recur (-> events last :redis/id)))
+              (recur (-> events last :redis/offset)))
             :done)))
       (assoc component :semaphore semaphore)))
   (stop [component]

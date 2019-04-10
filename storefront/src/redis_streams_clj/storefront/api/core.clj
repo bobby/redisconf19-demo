@@ -46,14 +46,14 @@
   (wcar redis (car/set (:email customer) customer)))
 
 (defn publish-customer-created!
-  [{:keys [redis event-stream] :as api} customer command-id]
+  [{:keys [redis event-stream] :as api} customer parent]
   (log/debug ::customer-created! customer)
   (redis/publish-event redis
                        (:stream event-stream)
                        :event/customer-created
                        customer
                        (util/uuid)
-                       command-id))
+                       parent))
 
 (defn publish-customer!
   [{:keys [redis customer-stream] :as api} customer]
@@ -123,13 +123,13 @@
     nil))
 
 (defn publish-items-added-to-basket!
-  [{:keys [redis event-stream] :as api} data command-id]
+  [{:keys [redis event-stream] :as api} data parent]
   (redis/publish-event redis
                        (:stream event-stream)
                        :event/items-added-to-basket
                        data
                        (util/uuid)
-                       command-id))
+                       parent))
 
 (defn remove-items-from-basket!
   [{:keys [api] :as context}
@@ -145,13 +145,13 @@
     nil))
 
 (defn publish-items-removed-from-basket!
-  [{:keys [redis event-stream] :as api} data command-id]
+  [{:keys [redis event-stream] :as api} data parent]
   (redis/publish-event redis
                        (:stream event-stream)
                        :event/items-removed-from-basket
                        data
                        (util/uuid)
-                       command-id))
+                       parent))
 
 (def make-order-items
   (item-maker :received))
@@ -174,13 +174,13 @@
     nil))
 
 (defn publish-order-placed!
-  [{:keys [redis event-stream] :as api} data command-id]
+  [{:keys [redis event-stream] :as api} data parent]
   (redis/publish-event redis
                        (:stream event-stream)
                        :event/order-placed
                        data
                        (util/uuid)
-                       command-id))
+                       parent))
 
 (defn pay-order!
   [{:keys [api] :as context}
@@ -202,13 +202,13 @@
             vals)))
 
 (defn publish-order-paid!
-  [{:keys [redis event-stream] :as api} data command-id]
+  [{:keys [redis event-stream] :as api} data parent]
   (redis/publish-event redis
                        (:stream event-stream)
                        :event/order-paid
                        data
                        (util/uuid)
-                       command-id))
+                       parent))
 
 (defn customer-by-email-subscription
   [{:keys [api] :as context} {:keys [email] :as args} callback]
@@ -227,4 +227,9 @@
 
 (defn publish-error!
   [{:keys [redis event-stream] :as api} error parent]
-  (redis/publish-event redis (:stream event-stream) :event/error error (util/uuid) parent))
+  (redis/publish-event redis
+                       (:stream event-stream)
+                       :event/error
+                       error
+                       (util/uuid)
+                       parent))

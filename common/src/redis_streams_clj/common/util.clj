@@ -18,6 +18,17 @@
         (async/untap event-mult ch)
         event))))
 
+(defn make-parent-from-upstream
+  [{:keys [redis/offset redis/stream] :as command-or-event}]
+  {:redis/offset offset
+   :redis/stream stream})
+
+(defn add-stream-and-offset-from-event
+  [data {:keys [redis/offset redis/stream] :as event}]
+  (assoc data
+         :event/offset offset
+         :event/stream stream))
+
 (defn set-default-uncaught-exception-handler!
   "Sets the default uncaught exception handler to log the error and exit
   the JVM process."
