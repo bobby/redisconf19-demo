@@ -152,7 +152,8 @@
     {:type        :Order
      :description "Pay for an Order"
      :args
-     {:id {:type :ID}}
+     {:customer_email {:type :String}
+      :order_id       {:type :ID}}
      :resolve     :mutation/pay-order!}}
 
    :subscriptions

@@ -149,7 +149,7 @@
   [api {:keys [command/data] :as command}]
   (let [parent (util/make-parent-from-upstream command)]
     (if-let [customer (api/customer-by-email api (:customer_email data))]
-      (if (get-in customer [:orders (:id data)])
+      (if (get-in customer [:orders (:order_id data)])
         (api/publish-order-paid! api data parent)
         (api/publish-error! api (assoc data :message "no order with id for customer") parent))
       (api/publish-error! api (assoc data :message "no customer found with this email") parent))))
