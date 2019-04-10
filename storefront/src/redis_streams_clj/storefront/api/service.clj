@@ -90,7 +90,7 @@
      {:id            {:type :ID}
       :menu_item_id  {:type :ID}
       :customization {:type :String}
-      :quantity      {:type :String}
+      :quantity      {:type :Int}
       :status        {:type :OrderItemStatus}}}
 
     :Order
