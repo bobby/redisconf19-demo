@@ -1,4 +1,4 @@
-{:paths   ["../common/src" "src" "config" "resources"]
+{:paths   ["../common/src" "src" "config" "resources" "../common/resources"]
  :aliases {:run
            {:main-opts ["-m" "redis-streams-clj.storefront.api"]},
 
