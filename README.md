@@ -26,6 +26,8 @@ make bootstrap
 make run
 ```
 
+Then visit the [Storefront](http://localhost:8080) and the [Barista Work Queue](http://localhost:8880).
+
 ## Development Workflow
 
 See the individual READMEs in each service: `storefront/README.md` and `barista/README.md`.

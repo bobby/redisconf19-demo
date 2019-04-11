@@ -1,24 +1,86 @@
 # Redis Streams Barista Work Queue
 
-## Run
+## Usage
 
-``` shell
-yarn install
+In addition to the instructions below, check out the Makefile for some
+other development conveniences.
 
-yarn watch
+### Run
+
+``` bash
+make run
 ```
 
-## Clean
+Then visit http://localhost:8880.
 
-``` shell
-yarn clean
+Production logs are written to `stdout` by default, and are
+configurable via `config/logback.xml`.
+
+See `config/config.edn` for the environment variables used to
+configure the service.
+
+### Development
+
+Development works best when running either the UI workflow alone, or
+both the UI and backend workflows together.
+
+#### UI
+
+To run a [Shadow CLJS](http://shadow-cljs.org/) server, complete with
+a watcher that auto compiles changed files and automatically reloads
+them in the browser:
+
+``` bash
+make cljs-dev
 ```
 
-## Release
+You can view the UI (without the backend service running) at
+http://localhost:8800.
 
-``` shell
-yarn release
+For more information, see `shadow-cljs.edn`.
+
+#### Backend
+
+This project uses the [Clojure CLI
+Tools](https://clojure.org/guides/deps_and_cli). To launch a REPL for
+the backend service component:
+
+``` bash
+make clj-dev
 ```
+
+You can use the environment variable `CLJ_REPL_ALIAS` to add
+additional Clojure CLI aliases to this dev workflow, for example:
+
+``` bash
+CLJ_REPL_ALIAS=:cider-nrepl make clj-dev
+```
+
+Once you have a Clojure REPL running in your environment of choice:
+
+``` clojure
+;;; In the REPL
+(dev)
+(go)
+```
+
+Then, navigate to http://localhost:8880 to view the running site. The
+UI-reloading capability described above continues to function when
+viewing the UI on this service port.
+
+After you change something, you can:
+
+``` clojure
+(reset)
+```
+
+To refresh the code and restart the system, as per [Stuart Sierra's
+component library](https://github.com/stuartsierra/component).
+
+Development logs are written out to files in `logs/`, and are
+configurable at `dev/logback-dev.xml`.
+
+For more information, see `deps.edn`.
 
 ## License
 
