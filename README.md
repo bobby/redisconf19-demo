@@ -1,5 +1,35 @@
 # Example and demo code for Bobby Calderwood's talk at RedisConf 2019
 
+## Usage
+
+First, start a Redis server on `6379`:
+
+``` bash
+# using homebrew-installed Redis
+brew services start redis
+
+# otherwise
+redis-server /usr/local/etc/redis.conf # or whatever
+```
+
+To run the three services (on Mac OS):
+
+``` bash
+# in one shell
+cd storefront
+make bootstrap
+make run
+
+# in another shell
+cd barista
+make bootstrap
+make run
+```
+
+## Development Workflow
+
+See the individual READMEs in each service: `storefront/README.md` and `barista/README.md`.
+
 ## [License](./LICENSE)
 
 Copyright 2019 Bobby Calderwood
