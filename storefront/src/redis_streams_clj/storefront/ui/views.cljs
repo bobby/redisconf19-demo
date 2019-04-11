@@ -53,7 +53,7 @@
                                     :placeholder "Joe Covfefe"
                                     :onChange    #(swap! state assoc :name (input-value-from-event %))}]]]
                     [:> ui/Field
-                     [:> ui/Label "Price"]
+                     [:> ui/Label "Email"]
                      [:> ui/Field
                       [:> ui/Control
                        [:> ui/Input {:type        "email"

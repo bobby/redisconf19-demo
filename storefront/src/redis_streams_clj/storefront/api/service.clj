@@ -16,7 +16,6 @@
             [redis-streams-clj.storefront.api.core :as api])
   (:import (clojure.lang IPersistentMap)))
 
-
 (defn menu
   [{:keys [api] :as context} args value]
   (api/menu api))
