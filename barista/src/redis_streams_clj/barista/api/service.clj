@@ -13,6 +13,7 @@
             [com.walmartlabs.lacinia :as lacinia]
             [clojure.core.async :as async]
             [redis-streams-clj.common.util :as util]
+            [redis-streams-clj.common.domain :as domain]
             [redis-streams-clj.barista.api.core :as api])
   (:import (clojure.lang IPersistentMap)))
 
@@ -24,10 +25,18 @@
 
     :OrderItemStatus
     {:description "The status of an order item"
-     :values      [:basket :received :preparing :ready :delivered]}}
+     :values      [:basket :ordered :preparing :ready :delivered]}}
 
    :objects
-   {:OrderItem
+   {:MenuItem
+    {:description "An item on the menu: a beverage or something"
+     :fields
+     {:id        {:type :ID}
+      :title     {:type :String}
+      :photo_url {:type        :String
+                  :description "The URL of the item photo"}}}
+
+    :OrderItem
     {:description "An item from the menu in a customer's basket or in an order"
      :fields
      {:id            {:type :ID}
@@ -44,7 +53,12 @@
       :queue_length {:type :Int}}}}
 
    :queries
-   {:baristaByEmail
+   {:menu
+    {:type        '(list :MenuItem)
+     :description "Show the menu"
+     :resolve     :query/menu}
+
+    :baristaByEmail
     {:type        :Barista
      :description "Shows the current state of the Barista with the given email"
      :args        {:email {:type :String}}
@@ -84,7 +98,8 @@
 
 (def resolver-map {:mutation/claim-next-item!       claim-next-item!
                    :mutation/complete-current-item! complete-current-item!
-                   :query/barista-by-email          barista-by-email})
+                   :query/barista-by-email          barista-by-email
+                   :query/menu                      (constantly domain/menu)})
 
 (defn health
   [_]

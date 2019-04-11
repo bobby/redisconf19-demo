@@ -38,22 +38,15 @@
   (let [state (reagent/atom {})]
     (fn []
       [page-view
-       {:header  "Welcome to our Coffee Shop."
+       {:header  "Welcome to work, Barista!"
         :content [:> ui/Column.Group
                   [:> ui/Column {:size 6}
-                   [:> ui/Title {:size 4} "Please sign in!"]
+                   [:> ui/Title {:size 4} "Please sign in to your work queue!"]
                    [:form {:onSubmit (fn [e]
                                        (.preventDefault e)
-                                       (re-frame/dispatch [:command/upsert-barista! @state]))}
+                                       (re-frame/dispatch [:command/sign-in! @state]))}
                     [:> ui/Field
-                     [:> ui/Label "Full Name"]
-                     [:> ui/Control
-                      [:> ui/Input {:type        "text"
-                                    :required    true
-                                    :placeholder "Joe Covfefe"
-                                    :onChange    #(swap! state assoc :name (input-value-from-event %))}]]]
-                    [:> ui/Field
-                     [:> ui/Label "Price"]
+                     [:> ui/Label "Email"]
                      [:> ui/Field
                       [:> ui/Control
                        [:> ui/Input {:type        "email"
@@ -70,10 +63,40 @@
                                      :onClick  #(js/history.back)}
                        "Cancel"]]]]]]}])))
 
+(defn order-item
+  [{:keys [menu_item quantity customization status]}]
+  (let [{:keys [title price photo_url]} menu_item]
+    [:> ui/Media
+     [:> ui/Media.Item {:align "left"}
+      [:> ui/Image.Container {:style {:max-width 100}}
+       [:> ui/Image {:alt title
+                     :src photo_url}]]]
+     [:> ui/Media.Item {:align "content"}
+      [:> ui/Title {:size 5} title]
+      [:p
+       [:strong "Quantity: "]
+       quantity]
+      (when customization
+        [:p
+         [:strong "Customization: "]
+         customization])]]))
+
 (defn work-queue []
-  [page-view
-   {:header "Work Queue"
-    :content [:p "TODO: barista work queue"]}])
+  (let [barista @(re-frame/subscribe [::subs/barista])]
+    [page-view
+     {:header  (str "Work Queue: " (:email barista))
+      :content [:> ui/Content
+                (if-let [item (:current_item barista)]
+                  [order-item item]
+                  [:p "You don't have an item in your work queue. Please click the button below to claim an item."])
+                [:> ui/Button.Group {:style {:marginTop "1em"}}
+                 [:> ui/Button {:color   "info"
+                                :onClick #(re-frame/dispatch [:command/claim-next-item!])}
+                  "Ready for Next Item"]
+                 (when-let [item-id (some-> barista :current_item :id)]
+                   [:> ui/Button {:color   "success"
+                                  :onClick #(re-frame/dispatch [:command/complete-current-item! item-id])}
+                    "Complete Current Item"])]]}]))
 
 (defn not-found []
   [page-view
@@ -82,24 +105,34 @@
 
 (defn navbar
   [page]
-  [:> ui/Container
-   [:> ui/Navbar {:transparent true}
-    [:> ui/Navbar.Brand
-     [:> ui/Navbar.Item
-      {:href (routes/home)}
-      [:> ui/Icon {:style {:marginRight "5px"}}
-       [:> FontAwesomeIcon {:icon "coffee"}]]
-      "A Streaming Cup 'o Joe"]
-     [:> ui/Navbar.Burger]]
-    [:> ui/Navbar.Menu
-     [:> ui/Navbar.Segment {:align "end"}
-      [:> ui/Navbar.Item
-       {:href    (routes/work-queue)
-        :active  (= page :work-queue)
-        :managed true}
-       [:> ui/Icon {:style {:marginRight "5px"}}
-        [:> FontAwesomeIcon {:icon "list"}]]
-       "Work Queue"]]]]])
+  (let [barista @(re-frame/subscribe [::subs/navbar])]
+    [:> ui/Container
+     [:> ui/Navbar {:transparent true}
+      [:> ui/Navbar.Brand
+       [:> ui/Navbar.Item
+        {:href (routes/home)}
+        [:> ui/Icon {:style {:marginRight "5px"}}
+         [:> FontAwesomeIcon {:icon "coffee"}]]
+        "A Streaming Cup 'o Joe"]
+       [:> ui/Navbar.Burger]]
+      [:> ui/Navbar.Menu
+       [:> ui/Navbar.Segment {:align "end"}
+        (if barista
+          [:> ui/Navbar.Item
+           {:href    (routes/work-queue)
+            :active  (= page :work-queue)
+            :managed true}
+           [:> ui/Icon {:style {:marginRight "5px"}}
+            [:> FontAwesomeIcon {:icon "list"}]]
+           "Work Queue"
+           [:> ui/Tag {:color "success"
+                       :style {:marginLeft "5px"}}
+            (:queue_length barista)]]
+          [:> ui/Navbar.Item
+           {:href    (routes/home)
+            :active  (= page :home)
+            :managed true}
+           "Sign In"])]]]]))
 
 (defn notifications
   []
