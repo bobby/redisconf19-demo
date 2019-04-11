@@ -253,35 +253,39 @@
 
 (defn navbar
   [page]
-  [:> ui/Container
-   [:> ui/Navbar {:transparent true}
-    [:> ui/Navbar.Brand
-     [:> ui/Navbar.Item
-      {:href (routes/home)}
-      [:> ui/Icon {:style {:marginRight "5px"}}
-       [:> FontAwesomeIcon {:icon "coffee"}]]
-      "A Streaming Cup 'o Joe"]
-     [:> ui/Navbar.Burger]]
-    [:> ui/Navbar.Menu
-     [:> ui/Navbar.Segment {:align "start"}
-      [:> ui/Navbar.Item
-       {:href    (routes/menu)
-        :active  (= page :menu)
-        :managed true}
-       "Menu"]]
-     [:> ui/Navbar.Segment {:align "end"}
-      [:> ui/Navbar.Item
-       {:href    (routes/basket)
-        :active  (= page :basket)
-        :managed true}
-       [:> ui/Icon {:style {:marginRight "5px"}}
-        [:> FontAwesomeIcon {:icon "shopping-basket"}]]
-       "My Basket"]
-      [:> ui/Navbar.Item
-       {:href    (routes/orders)
-        :active  (= page :orders)
-        :managed true}
-       "My Orders"]]]]])
+  (let [navbar @(re-frame/subscribe [::subs/navbar])]
+    [:> ui/Container
+     [:> ui/Navbar {:transparent true}
+      [:> ui/Navbar.Brand
+       [:> ui/Navbar.Item
+        {:href (routes/home)}
+        [:> ui/Icon {:style {:marginRight "5px"}}
+         [:> FontAwesomeIcon {:icon "coffee"}]]
+        "A Streaming Cup 'o Joe"]
+       [:> ui/Navbar.Burger]]
+      [:> ui/Navbar.Menu
+       [:> ui/Navbar.Segment {:align "start"}
+        [:> ui/Navbar.Item
+         {:href    (routes/menu)
+          :active  (= page :menu)
+          :managed true}
+         "Menu"]]
+       [:> ui/Navbar.Segment {:align "end"}
+        [:> ui/Navbar.Item
+         {:href    (routes/basket)
+          :active  (= page :basket)
+          :managed true}
+         [:> ui/Icon {:style {:marginRight "5px"}}
+          [:> FontAwesomeIcon {:icon "shopping-basket"}]]
+         "My Basket"
+         [:> ui/Tag {:color "success"
+                     :style {:marginLeft "5px"}}
+          (:basket-count navbar)]]
+        [:> ui/Navbar.Item
+         {:href    (routes/orders)
+          :active  (= page :orders)
+          :managed true}
+         "My Orders"]]]]]))
 
 (defn notifications
   []

@@ -41,6 +41,11 @@
                              items))))))
 
 (re-frame/reg-sub
+ ::navbar
+ (fn [{:keys [customer]}]
+   {:basket-count (-> customer :basket count)}))
+
+(re-frame/reg-sub
  ::notifications
  (fn [{:keys [notifications]}]
    notifications))
