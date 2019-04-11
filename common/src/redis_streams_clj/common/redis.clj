@@ -105,3 +105,8 @@
                              :timeout    timeout
                              :start-id   start-id
                              :redis      redis})))
+
+
+(defn publish-error!
+  [redis stream error parent]
+  (publish-event redis stream :event/error error (util/uuid) parent))

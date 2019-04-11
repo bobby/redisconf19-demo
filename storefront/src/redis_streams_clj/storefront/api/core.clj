@@ -212,10 +212,5 @@
        (async/close! ch))))
 
 (defn publish-error!
-  [{:keys [redis event-stream] :as api} error parent]
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/error
-                       error
-                       (util/uuid)
-                       parent))
+  [{:keys [event-stream redis] :as api} error parent]
+  (redis/publish-error! redis (:stream event-stream) error parent))
