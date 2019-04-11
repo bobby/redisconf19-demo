@@ -4,6 +4,7 @@
             [com.stuartsierra.component :as component]
             [io.pedestal.log :as log]
             [taoensso.carmine :as car :refer (wcar)]
+            [com.walmartlabs.lacinia.resolve :refer (resolve-as)]
             [redis-streams-clj.common.redis :as redis]
             [redis-streams-clj.common.util :as util])
   (:import [org.apache.commons.codec.digest DigestUtils]))
@@ -36,7 +37,7 @@
 
 (defn publish-item-claimed!
   [{:keys [redis event-stream] :as api}
-   {:keys [command/id command/action command/data redis/stream]
+   {:keys [command/data]
     :as   command}
    item]
   (redis/publish-event redis
@@ -64,53 +65,61 @@
   [email]
   (str "barista-queue:" email))
 
-(def general-queue-key "general-queue")
+(defn barista-completed-key
+  [email]
+  (str "barista-completed:" email))
+
+(def general-queue-key "barista-general-queue")
 
 (defn add-items-to-general-queue!
-  [{:keys [redis] :as api} items]
+  [{:keys [redis] :as api} customer-email order-id items]
   (when (seq items)
-    (wcar redis (apply car/rpush general-queue-key items))))
+    (wcar redis (apply car/lpush general-queue-key
+                       (map #(assoc %
+                                    :customer_email customer-email
+                                    :order_id order-id)
+                            items)))))
 
-(defn await-next-general-queue-item!
-  [{:keys [redis] :as api}]
-  (wcar redis (car/blpop general-queue-key)))
-
-(defn pop-barista-queue-item!
+;; TODO: make await timeout configurable
+(defn claim-next-general-queue-item!
   [{:keys [redis] :as api} email]
-  (wcar redis (car/lpop (barista-queue-key email))))
+  (wcar redis (car/brpoplpush general-queue-key (barista-queue-key email) 1)))
 
-(defn add-item-to-barista-queue!
-  [{:keys [redis] :as api} email item]
-  (wcar redis (car/rpush (barista-queue-key email) item)))
+;; TODO: make await timeout configurable
+(defn complete-current-barista-queue-item!
+  [{:keys [redis] :as api} email]
+  (wcar redis (car/brpoplpush (barista-queue-key email) (barista-completed-key email) 1)))
 
 ;;;; Service API
 
 (defn barista-by-email
-  [api email]
-  (let [queue         (barista-queue-key email)
-        [item length] (wcar (:redis api) (car/lindex queue 0) (car/llen queue))]
+  [{:keys [redis] :as api} email]
+  (let [queue  (barista-queue-key email)
+        length (wcar redis (car/llen queue))
+        item   (wcar redis (car/lindex queue (dec length)))]
     {:email        email
      :current_item item
      :queue_length length}))
 
 (defn claim-next-item!
   [{:keys [redis command-stream] :as api} barista-email]
-  (let [
-        command-id                     (util/uuid)
-        ch                             (util/await-event-with-parent api command-id)]
+  (let [command-id (util/uuid)
+        ch         (util/await-event-with-parent api command-id)]
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/claim-next-item
                            {:barista_email barista-email}
                            command-id)
     (when-some [event (async/<!! ch)]
-      (barista-by-email api barista-email))))
+      (let [barista (barista-by-email api barista-email)]
+        (if (= :event/error (:event/action event))
+          (resolve-as barista (:event/data event))
+          barista)))))
 
 (defn complete-current-item!
-  [api barista-email item-id]
-  (let [{:keys [redis command-stream]} api
-        command-id                     (util/uuid)
-        ch                             (util/await-event-with-parent api command-id)]
+  [{:keys [redis command-stream] :as api} barista-email item-id]
+  (let [command-id (util/uuid)
+        ch         (util/await-event-with-parent api command-id)]
     (redis/publish-command redis
                            (:stream command-stream)
                            :command/complete-current-item
@@ -118,4 +127,11 @@
                             :barista_email barista-email}
                            command-id)
     (when-some [event (async/<!! ch)]
-      (barista-by-email api barista-email))))
+      (let [barista (barista-by-email api barista-email)]
+        (if (= :event/error (:event/action event))
+          (resolve-as barista (:event/data event))
+          barista)))))
+
+(defn publish-error!
+  [{:keys [event-stream redis] :as api} error parent]
+  (redis/publish-error! redis (:stream event-stream) error parent))

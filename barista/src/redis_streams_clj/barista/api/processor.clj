@@ -28,17 +28,23 @@
   (log/warn ::process-event ::unknown :event event))
 
 (defmethod process-command :command/claim-next-item
-  [api command]
+  [api {:keys [command/data] :as command}]
   (log/info ::process-event :command/claim-next-item :command command)
-  (when-some [item (api/await-next-general-queue-item! api)] ;; TODO: timeout?
-    (api/publish-item-claimed! api command item)))
+  (if-some [item (api/claim-next-general-queue-item! api (:barista_email data))] ;; TODO: timeout?
+    (api/publish-item-claimed! api command item)
+    (api/publish-error! api
+                        (assoc data :message "No order items yet, please try again later!")
+                        (util/make-parent-from-upstream command))))
 
 ;; TODO: validate that completed item is same as next (peek via lindex) item from queue
 (defmethod process-command :command/complete-current-item
   [api {:keys [command/data] :as command}]
   (log/info ::process-event :command/complete-current-item :command command)
-  (when-some [item (api/pop-barista-queue-item! api (:barista_email data))]
-    (api/publish-item-completed! api command item)))
+  (if-some [item (api/complete-current-barista-queue-item! api (:barista_email data))]
+    (api/publish-item-completed! api command item)
+    (api/publish-error! api
+                        (assoc data :message "barista has no order items in queue")
+                        (util/make-parent-from-upstream command))))
 
 (defmethod process-storefront-event :event/order-placed
   [api event]
@@ -47,13 +53,18 @@
 (defmethod process-event :event/order-placed
   [api {:keys [event/data] :as event}]
   (log/info ::process-event :event/order-placed :event event)
-  (api/add-items-to-general-queue! api (:items data)))
+  (api/add-items-to-general-queue! api
+                                   (:customer_email data)
+                                   (-> data :order :id)
+                                   (-> data :order :items vals)))
 
 (defmethod process-event :event/item-claimed
   [api {:keys [event/data] :as event}]
-  (log/info ::process-event :event/item-claimed :event event)
-  (let [{:keys [barista_email item]} data]
-    (api/add-item-to-barista-queue! barista_email item)))
+  (log/debug ::process-event :event/item-claimed :event event))
+
+(defmethod process-event :event/item-completed
+  [api {:keys [event/data] :as event}]
+  (log/debug ::process-event :event/item-completed :event event))
 
 (defrecord Processor [api command-channel event-mult event-channel storefront-channel]
   component/Lifecycle
