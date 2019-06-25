@@ -1,13 +1,13 @@
 {:paths   ["../common/src" "src" "config" "resources" "../common/resources"]
  :aliases {:run
-           {:main-opts ["-m" "redis-streams-clj.barista.api"]},
+           {:main-opts ["-m" "redis-streams-clj.barista.api"]}
 
            :dev
-           {:jvm-opts    ["-Dlogback.configurationFile=./dev/logback-dev.xml"],
+           {:jvm-opts    ["-Dlogback.configurationFile=./dev/logback-dev.xml"]
             :extra-paths ["dev"]
             :extra-deps
-            {io.pedestal/pedestal.service-tools {:mvn/version "0.5.4"},
-             reloaded.repl                      {:mvn/version "0.2.4"},
+            {io.pedestal/pedestal.service-tools {:mvn/version "0.5.4"}
+             reloaded.repl                      {:mvn/version "0.2.4"}
              eftest                             {:mvn/version "0.5.3"}}}
 
            :cljs
