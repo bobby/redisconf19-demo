@@ -9,7 +9,7 @@
             [redis-streams-clj.common.util :as util])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
-(defrecord Api [redis command-stream event-stream event-mult customer-stream customer-pub]
+(defrecord Api [redis event-stream customer-stream customer-pub]
   component/Lifecycle
   (start [component]
     (log/info :component ::Api :phase :start)
@@ -19,9 +19,8 @@
     component))
 
 (defn make-api
-  [{:keys [redis event-stream command-stream customer-stream] :as config}]
+  [{:keys [redis event-stream customer-stream] :as config}]
   (map->Api {:redis           redis
-             :command-stream  command-stream
              :event-stream    event-stream
              :customer-stream customer-stream}))
 
@@ -45,16 +44,8 @@
   (log/debug ::set-customer! customer)
   (wcar redis (car/set (:email customer) customer)))
 
-(defn publish-customer-created!
-  [{:keys [redis event-stream] :as api} customer parent]
-  (log/debug ::customer-created! customer)
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/customer-created
-                       customer
-                       (util/uuid)
-                       parent))
-
+;; Refactor this to just publish customer updates, which then get
+;; updated in redis via processor
 (defn publish-customer!
   [{:keys [redis customer-stream] :as api} customer]
   (let [id (wcar redis (car/xadd (:stream customer-stream)
@@ -63,6 +54,8 @@
                                  customer))]
     (assoc customer :customer/offset id)))
 
+;; Refactor this to just publish customer updates, which then get
+;; updated in redis via processor
 (defn publish-and-set-customer!
   [api customer]
   (->> customer
@@ -70,23 +63,19 @@
        (set-customer! api)))
 
 (defn upsert-customer!
-  [{:keys [redis command-stream] :as api} customer-params]
+  [{:keys [redis event-stream] :as api} customer-params]
   (if-some [customer (customer-by-email api (:email customer-params))]
     (present-customer customer)
-    (let [command-id (util/uuid)
-          ch         (util/await-event-with-parent api command-id)]
-      (redis/publish-command redis
-                             (:stream command-stream)
-                             :command/create-customer
-                             (assoc customer-params
-                                    :id (util/uuid)
-                                    :basket {}
-                                    :orders {})
-                             command-id)
-      (some-> ch
-              async/<!!
-              :event/data
-              present-customer))))
+    (redis/publish-event redis
+                         (:stream event-stream)
+                         :event/customer-created
+                         (assoc customer-params
+                                :id (util/uuid)
+                                :basket {}
+                                :orders {})
+                         (util/uuid)
+                         {:command/action :upsert-customer!
+                          :command/data   customer-params})))
 
 (defn item-maker
   [status]
@@ -109,42 +98,30 @@
   (item-maker :basket))
 
 (defn add-items-to-basket!
-  [{:keys [redis command-stream] :as api} customer-email items]
-  (redis/publish-command redis
-                         (:stream command-stream)
-                         :command/add-items-to-basket
+  [{:keys [redis event-stream] :as api} customer-email items]
+  (when-let [customer (customer-by-email api customer-email)]
+    (redis/publish-event redis
+                         (:stream event-stream)
+                         :event/items-added-to-basket
                          {:customer_email customer-email
                           :items          (make-basket-items items)}
-                         (util/uuid))
-  nil)
-
-(defn publish-items-added-to-basket!
-  [{:keys [redis event-stream] :as api} data parent]
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/items-added-to-basket
-                       data
-                       (util/uuid)
-                       parent))
+                         (util/uuid)
+                         {:command/action :add-items-to-basket
+                          :command/data   {:customer_email customer-email
+                                           :items          items}})))
 
 (defn remove-items-from-basket!
-  [{:keys [redis command-stream] :as api} customer-email item-ids]
-  (redis/publish-command redis
-                         (:stream command-stream)
-                         :command/remove-items-from-basket
+  [{:keys [redis event-stream] :as api} customer-email item-ids]
+  (when-let [customer (customer-by-email api customer-email)]
+    (redis/publish-event redis
+                         (:stream event-stream)
+                         :event/items-removed-from-basket
                          {:customer_email customer-email
                           :items          item-ids}
-                         (util/uuid))
-  nil)
-
-(defn publish-items-removed-from-basket!
-  [{:keys [redis event-stream] :as api} data parent]
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/items-removed-from-basket
-                       data
-                       (util/uuid)
-                       parent))
+                         (util/uuid)
+                         {:command/action :remove-items-from-basket
+                          :command/data   {:customer_email customer-email
+                                           :items          item-ids}})))
 
 (def make-order-items
   (item-maker :ordered))
@@ -153,49 +130,35 @@
   [order]
   (update order :items vals))
 
+;; TODO: CAS on items in basket?
 (defn place-order!
-  [{:keys [redis command-stream] :as api} customer-email items]
-  (redis/publish-command redis
-                         (:stream command-stream)
-                         :command/place-order
+  [{:keys [redis event-stream] :as api} customer-email items]
+  (when-let [customer (customer-by-email api customer-email)]
+    (redis/publish-event redis
+                         (:stream event-stream)
+                         :event/order-placed
                          {:customer_email customer-email
-                          :items          (make-order-items items)}
-                         (util/uuid))
-  nil)
-
-(defn publish-order-placed!
-  [{:keys [redis event-stream] :as api} data parent]
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/order-placed
-                       data
-                       (util/uuid)
-                       parent))
+                          :order          {:id     (util/uuid)
+                                           :items  (make-order-items items)
+                                           :status :placed}}
+                         (util/uuid)
+                         {:command/action :place-order
+                          :command/data   {:customer_email customer-email
+                                           :items          items}})))
 
 (defn pay-order!
-  [{:keys [redis command-stream] :as api} customer-email order-id]
-  (let [command-id (util/uuid)
-        ch         (util/await-event-with-parent api command-id)]
-    (redis/publish-command redis
-                           (:stream command-stream)
-                           :command/pay-order
-                           {:customer_email customer-email
-                            :order_id       order-id}
-                           command-id)
-    (some-> ch
-            async/<!!
-            :event/data
-            :items
-            vals)))
-
-(defn publish-order-paid!
-  [{:keys [redis event-stream] :as api} data parent]
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/order-paid
-                       data
-                       (util/uuid)
-                       parent))
+  [{:keys [redis event-stream] :as api} customer-email order-id]
+  (let [data {:customer_email customer-email
+              :order_id       order-id}]
+    (when-let [customer (customer-by-email api customer-email)]
+      (when (get-in customer [:orders order-id])
+        (redis/publish-event redis
+                             (:stream event-stream)
+                             :event/order-paid
+                             data
+                             (util/uuid)
+                             {:command/action :pay-order
+                              :command/data   data})))))
 
 (defn customer-by-email-subscription
   [{:keys [customer-pub] :as api} email callback]

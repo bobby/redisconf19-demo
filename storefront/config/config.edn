@@ -6,9 +6,6 @@
                    :spec {:host     #dyn/prop ["REDIS_HOST" "localhost"]
                           :port     #dyn/long #dyn/prop ["REDIS_PORT" "6379"]
                           :password #dyn/prop ["REDIS_PASSWORD" nil]}}
- :command-stream  {:stream     #dyn/prop ["REDIS_COMMAND_STREAM" "storefront-commands"]
-                   :batch-size 5
-                   :client-id  #dyn/prop ["HOSTNAME" "localhost"]}
  :event-stream    {:stream     #dyn/prop ["REDIS_EVENT_STREAM" "storefront-events"]
                    :batch-size 5
                    :client-id  #dyn/prop ["HOSTNAME" "localhost"]}
