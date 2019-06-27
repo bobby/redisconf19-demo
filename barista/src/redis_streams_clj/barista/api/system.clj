@@ -10,17 +10,15 @@
             [redis-streams-clj.barista.api.core :as api]))
 
 (defn make-system
-  [{:keys [http redis command-stream event-stream storefront-stream] :as config}]
+  [{:keys [http redis event-stream storefront-stream] :as config}]
   (component/system-map
    :storefront-channel (component/using (redis/make-redis-stream-channel storefront-stream) {:init :storefront-init})
-   :command-channel    (component/using (redis/make-redis-stream-channel command-stream) {:init :command-init})
    :event-channel      (redis/make-redis-stream-channel (assoc event-stream :redis redis))
    :event-mult         (component/using (async/make-mult) {:channel :event-channel})
 
    :storefront-init    (component/using (processor/make-storefront-init) [:api])
-   :command-init       (component/using (processor/make-command-init) [:api])
-   :processor          (component/using (processor/make-processor) [:api :storefront-channel :command-channel :event-mult])
+   :processor          (component/using (processor/make-processor) [:api :storefront-channel :event-mult])
 
-   :api                (component/using (api/make-api config) [:event-mult])
+   :api                (api/make-api config)
    :service            (component/using (service/make-service http) [:api])
    :server             (component/using (server/make-server) [:service])))

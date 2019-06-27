@@ -8,9 +8,6 @@
 (defmulti process-storefront-event
   (fn [api event]   (:event/action event))
   :default ::unknown)
-(defmulti process-command
-  (fn [api command] (:command/action command))
-  :default ::unknown)
 (defmulti process-event
   (fn [api event]   (:event/action event))
   :default ::unknown)
@@ -19,32 +16,9 @@
   [api event]
   (log/warn ::process-storefront-event ::unknown :event event))
 
-(defmethod process-command ::unknown
-  [api command]
-  (log/warn ::process-command ::unknown :command command))
-
 (defmethod process-event ::unknown
   [api event]
   (log/warn ::process-event ::unknown :event event))
-
-(defmethod process-command :command/claim-next-item
-  [api {:keys [command/data] :as command}]
-  (log/info ::process-event :command/claim-next-item :command command)
-  (if-some [item (api/claim-next-general-queue-item! api (:barista_email data))] ;; TODO: timeout?
-    (api/publish-item-claimed! api command item)
-    (api/publish-error! api
-                        (assoc data :message "No order items yet, please try again later!")
-                        (util/make-parent-from-upstream command))))
-
-;; TODO: validate that completed item is same as next (peek via lindex) item from queue
-(defmethod process-command :command/complete-current-item
-  [api {:keys [command/data] :as command}]
-  (log/info ::process-event :command/complete-current-item :command command)
-  (if-some [item (api/complete-current-barista-queue-item! api (:barista_email data))]
-    (api/publish-item-completed! api command item)
-    (api/publish-error! api
-                        (assoc data :message "barista has no order items in queue")
-                        (util/make-parent-from-upstream command))))
 
 (defmethod process-storefront-event :event/order-placed
   [api event]
@@ -66,7 +40,7 @@
   [api {:keys [event/data] :as event}]
   (log/debug ::process-event :event/item-completed :event event))
 
-(defrecord Processor [api command-channel event-mult event-channel storefront-channel]
+(defrecord Processor [api event-mult event-channel storefront-channel]
   component/Lifecycle
   (start [component]
     (let [event-channel (async/chan 1)]
@@ -79,15 +53,6 @@
             (do
               (log/debug ::process-storefront-event event)
               (process-storefront-event api event)
-              (recur))
-            :done)))
-      ;; Commands
-      (async/thread
-        (loop []
-          (if-some [command (async/<!! command-channel)]
-            (do
-              (log/debug ::process-command command)
-              (process-command api command)
               (recur))
             :done)))
       ;; Events
@@ -128,19 +93,3 @@
 (defn make-storefront-init
   []
   (map->StorefrontInit {}))
-
-(defrecord CommandInit [api start-id]
-  component/Lifecycle
-  (start [component]
-    (log/info :component ::CommandInit :phase :start)
-    (log/debug ::CommandInit component)
-    ;; TODO: lookup the first unprocessed command based on events topic
-    (assoc component :start-id "$"))
-  (stop [component]
-    (log/info :component ::CommandInit :phase :stop)
-    (log/debug ::CommandInit component)
-    (assoc component :start-id nil)))
-
-(defn make-command-init
-  []
-  (map->CommandInit {}))

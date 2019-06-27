@@ -9,7 +9,7 @@
             [redis-streams-clj.common.util :as util])
   (:import [org.apache.commons.codec.digest DigestUtils]))
 
-(defrecord Api [redis command-stream event-stream event-mult]
+(defrecord Api [redis event-stream event-mult]
   component/Lifecycle
   (start [component]
     (log/info :component ::Api :phase :start)
@@ -19,10 +19,9 @@
     component))
 
 (defn make-api
-  [{:keys [redis event-stream command-stream] :as config}]
-  (map->Api {:redis          redis
-             :command-stream command-stream
-             :event-stream   event-stream}))
+  [{:keys [redis event-stream] :as config}]
+  (map->Api {:redis        redis
+             :event-stream event-stream}))
 
 (defn publish-upstream-event!
   [{:keys [redis event-stream] :as api}
@@ -34,32 +33,6 @@
                        data
                        id
                        (util/make-parent-from-upstream event)))
-
-(defn publish-item-claimed!
-  [{:keys [redis event-stream] :as api}
-   {:keys [command/data]
-    :as   command}
-   item]
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/item-claimed
-                       {:barista_email (:barista_email data)
-                        :item          item}
-                       (util/uuid)
-                       (util/make-parent-from-upstream command)))
-
-(defn publish-item-completed!
-  [{:keys [redis event-stream] :as api}
-   {:keys [command/id command/action command/data redis/stream]
-    :as   command}
-   item]
-  (redis/publish-event redis
-                       (:stream event-stream)
-                       :event/item-completed
-                       {:barista_email (:barista_email data)
-                        :item          item}
-                       (util/uuid)
-                       (util/make-parent-from-upstream command)))
 
 (defn barista-queue-key
   [email]
@@ -102,35 +75,36 @@
      :queue_length length}))
 
 (defn claim-next-item!
-  [{:keys [redis command-stream] :as api} barista-email]
-  (let [command-id (util/uuid)
-        ch         (util/await-event-with-parent api command-id)]
-    (redis/publish-command redis
-                           (:stream command-stream)
-                           :command/claim-next-item
-                           {:barista_email barista-email}
-                           command-id)
-    (when-some [event (async/<!! ch)]
-      (let [barista (barista-by-email api barista-email)]
-        (if (= :event/error (:event/action event))
-          (resolve-as barista (:event/data event))
-          barista)))))
+  [{:keys [redis event-stream] :as api} barista-email]
+  (if-some [item (claim-next-general-queue-item! api barista-email)]
+    (do
+      (redis/publish-event redis
+                           (:stream event-stream)
+                           :event/item-claimed
+                           {:barista_email barista-email
+                            :item          item}
+                           (util/uuid)
+                           {:command/action :claim-next-item
+                            :command/data   {:barista_email barista-email}})
+      (barista-by-email api barista-email))
+    (resolve-as (barista-by-email api barista-email)
+                {:message "No items to work on yet, please try again later!"})))
 
 (defn complete-current-item!
-  [{:keys [redis command-stream] :as api} barista-email item-id]
-  (let [command-id (util/uuid)
-        ch         (util/await-event-with-parent api command-id)]
-    (redis/publish-command redis
-                           (:stream command-stream)
-                           :command/complete-current-item
-                           {:item_id       item-id
-                            :barista_email barista-email}
-                           command-id)
-    (when-some [event (async/<!! ch)]
-      (let [barista (barista-by-email api barista-email)]
-        (if (= :event/error (:event/action event))
-          (resolve-as barista (:event/data event))
-          barista)))))
+  [{:keys [redis event-stream] :as api} barista-email item-id]
+  (if-some [item (complete-current-barista-queue-item! api barista-email)]
+    (do (redis/publish-event redis
+                             (:stream event-stream)
+                             :event/item-completed
+                             {:barista_email barista-email
+                              :item          item}
+                             (util/uuid)
+                             {:command/action :complete-current-item
+                              :command/data   {:barista_email barista-email
+                                               :item_id       item-id}})
+        (barista-by-email api barista-email))
+    (resolve-as (barista-by-email api barista-email)
+                {:message "Can't complete item, since there is no item in your queue."})))
 
 (defn publish-error!
   [{:keys [event-stream redis] :as api} error parent]
