@@ -16,3 +16,10 @@
     :description "Cocoa powder, sugar, and streamed milk, for us non-coffee drinkers."
     :price       750
     :photo_url   "/img/products/cocoa.jpg"}])
+
+(def ingredient-usage
+  {"e19fa2b0-5662-11e9-a902-dac8687b984b" {:coffee_beans 100
+                                           :milk         50}
+   "e7746720-5662-11e9-a902-dac8687b984b" {:coffee_beans 120}
+   "ed3666e0-5662-11e9-a902-dac8687b984b" {:cocoa_powder 150
+                                           :milk         100}})

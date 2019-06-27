@@ -1,0 +1,33 @@
+<!-- Logback configuration. See http://logback.qos.ch/manual/index.html -->
+<!-- Scanning is currently turned on; This will impact performance! -->
+<configuration scan="true" scanPeriod="10 seconds">
+  <!-- Silence Logback's own status messages about config parsing
+  <statusListener class="ch.qos.logback.core.status.NopStatusListener" /> -->
+
+  <!-- Simple file output -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <!-- rollover daily -->
+      <fileNamePattern>logs/public-ui-dev-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <!-- or whenever the file size reaches 64 MB -->
+      <maxFileSize>64 MB</maxFileSize>
+    </rollingPolicy>
+
+    <!-- Safely log to the same file from multiple JVMs. Degrades performance! -->
+    <prudent>true</prudent>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="FILE" />
+  </root>
+
+  <!-- For loggers in the these namespaces, log at all levels. -->
+  <logger name="redis-streams-clj" level="ALL" />
+  <logger name="user" level="ALL" />
+
+</configuration>
