@@ -44,8 +44,12 @@
 (re-frame/reg-event-fx
  :event/signed-in
  (fn-traced [{:keys [db]} [_ result]]
-   {:db         (if (seq (:errors result))
-                  db
+   {:db         (if-let [errors (seq (:errors result))]
+                  (update db :notifications #(reduce (fn [agg error]
+                                                       (let [id (random-uuid)]
+                                                         (assoc agg id error)))
+                                                     %
+                                                     (map api/format-error errors)))
                   (update db :notifications assoc (random-uuid) {:color :info :message "Signed in!"}))
     :dispatch-n [[::re-graph/query
                   "query menu{menu{id,title,photo_url}}"
