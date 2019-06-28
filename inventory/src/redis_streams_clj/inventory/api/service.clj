@@ -116,7 +116,7 @@
       (update ::http/routes conj
               ["/health" :get health :route-name ::health]
               ["/"       :get index  :route-name ::index]
-              ["/*"      :get index  :route-name ::index-catchall])
+              #_["/*"      :get index  :route-name ::index-catchall])
       http/default-interceptors))
 
 (defrecord Service [api config service-map]
