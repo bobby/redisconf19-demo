@@ -24,9 +24,14 @@ make run
 cd barista
 make bootstrap
 make run
+
+# in a third shell
+cd inventory
+make bootstrap
+make run
 ```
 
-Then visit the [Storefront](http://localhost:8080) and the [Barista Work Queue](http://localhost:8880).
+Then visit the [Storefront](http://localhost:8080), [Barista Work Queue](http://localhost:8880), and [Inventory GraphiQL](http://localhost:8980) UIs.
 
 ## Development Workflow
 
