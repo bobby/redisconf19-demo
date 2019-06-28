@@ -101,7 +101,7 @@
       ls/compile
       (lp/service-map
        {:env           env
-        :graphiql      (= env :dev)
+        :graphiql      true ;; (= env :dev) ; TODO: this is temporary until a proper UI is built
         :ide-path      "/graphiql"
         :subscriptions true
         :port          port
