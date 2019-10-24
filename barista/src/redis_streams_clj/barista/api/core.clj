@@ -27,6 +27,7 @@
   [{:keys [redis event-stream] :as api}
    {:keys [event/id event/action event/data redis/stream]
     :as   event}]
+  (log/info ::publish-upstream-event! event)
   (redis/publish-event redis
                        (:stream event-stream)
                        action
@@ -46,6 +47,7 @@
 
 (defn add-items-to-general-queue!
   [{:keys [redis] :as api} customer-email order-id items]
+  (log/info ::add-items-to-general-queue! [customer-email order-id items])
   (when (seq items)
     (wcar redis (apply car/lpush general-queue-key
                        (map #(assoc %
@@ -56,11 +58,13 @@
 ;; TODO: make await timeout configurable
 (defn claim-next-general-queue-item!
   [{:keys [redis] :as api} email]
+  (log/info ::claim-next-general-queue-item! email)
   (wcar redis (car/brpoplpush general-queue-key (barista-queue-key email) 1)))
 
 ;; TODO: make await timeout configurable
 (defn complete-current-barista-queue-item!
   [{:keys [redis] :as api} email]
+  (log/info ::complete-current-barista-queue-item! [email])
   (wcar redis (car/brpoplpush (barista-queue-key email) (barista-completed-key email) 1)))
 
 ;;;; Service API
@@ -76,6 +80,7 @@
 
 (defn claim-next-item!
   [{:keys [redis event-stream] :as api} barista-email]
+  (log/info ::claim-next-item! [barista-email])
   (if-some [item (claim-next-general-queue-item! api barista-email)]
     (do
       (redis/publish-event redis
@@ -92,6 +97,7 @@
 
 (defn complete-current-item!
   [{:keys [redis event-stream] :as api} barista-email item-id]
+  (log/info ::complete-current-item! [barista-email item-id])
   (if-some [item (complete-current-barista-queue-item! api barista-email)]
     (do (redis/publish-event redis
                              (:stream event-stream)
@@ -108,4 +114,5 @@
 
 (defn publish-error!
   [{:keys [event-stream redis] :as api} error parent]
+  (log/warn ::publish-error! [error parent])
   (redis/publish-error! redis (:stream event-stream) error parent))

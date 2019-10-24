@@ -29,6 +29,7 @@
   [{:keys [redis event-stream] :as api}
    {:keys [event/id event/action event/data redis/stream]
     :as   event}]
+  (log/info ::publish-upstream-event! event)
   (redis/publish-event redis
                        (:stream event-stream)
                        action
@@ -65,6 +66,7 @@
 
 (defn reconcile-inventory!
   [{:keys [redis event-stream] :as api} inventory]
+  (log/info ::reconcile-inventory! inventory)
   (redis/publish-event redis
                        (:stream event-stream)
                        :event/inventory-reconciled
@@ -76,6 +78,7 @@
 ;; TODO: handle failure to publish to stream
 (defn publish-inventory!
   [{:keys [redis inventory-stream] :as api} levels]
+  (log/info ::publish-inventory! levels)
   (let [inventory {:id     (util/uuid)
                    :time   (java.util.Date.)
                    :levels levels}

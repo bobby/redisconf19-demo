@@ -64,6 +64,7 @@
 
 (defn upsert-customer!
   [{:keys [redis event-stream] :as api} customer-params]
+  (log/info ::upsert-customer! customer-params)
   (if-some [customer (customer-by-email api (:email customer-params))]
     (present-customer customer)
     (redis/publish-event redis
@@ -99,6 +100,7 @@
 
 (defn add-items-to-basket!
   [{:keys [redis event-stream] :as api} customer-email items]
+  (log/info ::add-items-to-basket! [customer-email items])
   (when-let [customer (customer-by-email api customer-email)]
     (redis/publish-event redis
                          (:stream event-stream)
@@ -112,6 +114,7 @@
 
 (defn remove-items-from-basket!
   [{:keys [redis event-stream] :as api} customer-email item-ids]
+  (log/info ::remove-items-from-basket! [customer-email item-ids])
   (when-let [customer (customer-by-email api customer-email)]
     (redis/publish-event redis
                          (:stream event-stream)
@@ -133,6 +136,7 @@
 ;; TODO: CAS on items in basket?
 (defn place-order!
   [{:keys [redis event-stream] :as api} customer-email items]
+  (log/info ::place-order! [customer-email items])
   (when-let [customer (customer-by-email api customer-email)]
     (redis/publish-event redis
                          (:stream event-stream)
@@ -148,6 +152,7 @@
 
 (defn pay-order!
   [{:keys [redis event-stream] :as api} customer-email order-id]
+  (log/info ::pay-order! [customer-email order-id])
   (let [data {:customer_email customer-email
               :order_id       order-id}]
     (when-let [customer (customer-by-email api customer-email)]
@@ -176,4 +181,5 @@
 
 (defn publish-error!
   [{:keys [event-stream redis] :as api} error parent]
+  (log/warn ::publish-error! [error parent])
   (redis/publish-error! redis (:stream event-stream) error parent))
