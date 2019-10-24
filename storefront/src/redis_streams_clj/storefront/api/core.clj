@@ -32,6 +32,7 @@
 (defn present-customer
   [customer]
   (-> customer
+      (update :id str)
       (update :basket vals)
       (update :orders (comp #(map present-order %) vals))))
 
@@ -172,9 +173,13 @@
     (async/go-loop []
       (if-some [customer (async/<! ch)]
         (do
-          (callback (present-customer customer))
+          (try
+            (callback (present-customer customer))
+            (catch Exception e
+              (log/error :exception e)
+              :error))
           (recur))
-        (callback nil)))
+        :done))
     #(do
        (async/unsub customer-pub email ch)
        (async/close! ch))))
