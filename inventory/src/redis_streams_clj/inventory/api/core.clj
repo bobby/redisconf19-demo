@@ -102,3 +102,10 @@
   [api order-item]
   (drawdown-inventory (-> api current-inventory :levels)
                       order-item))
+
+(comment
+
+  (require '[redis-streams-clj.inventory.api.core :as api])
+  (api/reconcile-inventory! (:api system) {:coffee_beans 1000 :cocoa_powder 4000 :milk 10000})
+
+  )
