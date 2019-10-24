@@ -28,7 +28,12 @@ make run
 # in a third shell
 cd inventory
 make bootstrap
-make run
+make dev
+# in Clojure REPL
+(dev)
+(go)
+(require '[redis-streams-clj.inventory.api.core :as api])
+(api/reconcile-inventory! (:api system) {:coffee_beans 1000 :cocoa_powder 4000 :milk 10000})
 ```
 
 Then visit the [Storefront](http://localhost:8080), [Barista Work Queue](http://localhost:8880), and [Inventory GraphiQL](http://localhost:8980) UIs.

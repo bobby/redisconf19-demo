@@ -6,15 +6,16 @@
            {:jvm-opts    ["-Dlogback.configurationFile=./dev/logback-dev.xml"],
             :extra-paths ["dev"]
             :extra-deps
-            {io.pedestal/pedestal.service-tools {:mvn/version "0.5.4"},
+            {io.pedestal/pedestal.service-tools {:mvn/version "0.5.7"},
              reloaded.repl                      {:mvn/version "0.2.4"},
              eftest                             {:mvn/version "0.5.3"}}}
 
            :cljs
            {:extra-deps
-            { ;; Framework
-             reagent  {:mvn/version "0.8.1"}
-             re-frame {:mvn/version "0.10.6"}
+            {;; Framework
+             thheller/shadow-cljs {:mvn/version "2.8.40"}
+             reagent              {:mvn/version "0.8.1"}
+             re-frame             {:mvn/version "0.10.6"}
 
              ;; Routing and browser history
              clj-commons/secretary {:mvn/version "1.2.4"}
@@ -33,29 +34,29 @@
            :cljs-release
            {:extra-deps
             {day8.re-frame/tracing-stubs {:mvn/version "0.5.1"}}}}
- :deps {org.clojure/clojure    {:mvn/version "1.10.0"}
+ :deps {org.clojure/clojure    {:mvn/version "1.10.1"}
         org.clojure/spec.alpha {:mvn/version "0.2.176"}
-        org.clojure/core.async {:mvn/version "0.4.490"}
+        org.clojure/core.async {:mvn/version "0.4.500"}
 
         ;; Redis
         com.taoensso/carmine {:mvn/version "2.19.1"}
 
         ;; Util
-        danlentz/clj-uuid {:mvn/version "0.1.7"}
+        danlentz/clj-uuid {:mvn/version "0.1.9"}
 
         ;; HTTP
-        io.pedestal/pedestal.service {:mvn/version "0.5.5"}
-        io.pedestal/pedestal.jetty   {:mvn/version "0.5.5"}
+        io.pedestal/pedestal.service {:mvn/version "0.5.7"}
+        io.pedestal/pedestal.jetty   {:mvn/version "0.5.7"}
 
         ;; GraphQL
-        com.walmartlabs/lacinia-pedestal {:mvn/version "0.11.0"}
-        com.walmartlabs/lacinia          {:mvn/version "0.32.0"}
+        com.walmartlabs/lacinia-pedestal {:mvn/version "0.12.0"}
+        com.walmartlabs/lacinia          {:mvn/version "0.35.0"}
 
         ;; Logging
         ch.qos.logback/logback-classic {:mvn/version "1.2.3" :exclusions [org.slf4j/slf4j-api]}
-        org.slf4j/jul-to-slf4j         {:mvn/version "1.7.26"}
-        org.slf4j/jcl-over-slf4j       {:mvn/version "1.7.26"}
-        org.slf4j/log4j-over-slf4j     {:mvn/version "1.7.26"}
+        org.slf4j/jul-to-slf4j         {:mvn/version "1.7.28"}
+        org.slf4j/jcl-over-slf4j       {:mvn/version "1.7.28"}
+        org.slf4j/log4j-over-slf4j     {:mvn/version "1.7.28"}
 
         ;; Config and system
         com.stuartsierra/component {:mvn/version "0.4.0"}
@@ -63,4 +64,4 @@
         meta-merge                 {:mvn/version "0.1.1"}
 
         ;; Managed transitive deps for Java 11
-        org.clojure/core.rrb-vector {:mvn/version "0.0.14"}}}
+        org.clojure/core.rrb-vector {:mvn/version "0.1.0"}}}
